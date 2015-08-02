@@ -23,7 +23,13 @@
 
 namespace Bitmap_Converter
 {
-    public class Erreurs
+    /// <summary>
+    /// Structure de donnée utilisée pour stocker les
+    /// erreurs survenues lors de la conversion.
+    /// 
+    /// Elle est partagée par tout le monde.
+    /// </summary>
+    public sealed class Erreurs
     {
         public ArrayList
             erronés,
@@ -33,9 +39,14 @@ namespace Bitmap_Converter
 
         public Erreurs()
         {
-            erronés = new ArrayList();
-            nonSupprimés = new ArrayList();
-            erreur = false;
+            Reset();
+        }
+
+        public void Reset()
+        {
+            this.erronés = new ArrayList();
+            this.nonSupprimés = new ArrayList();
+            this.erreur = false;
         }
     }
 }

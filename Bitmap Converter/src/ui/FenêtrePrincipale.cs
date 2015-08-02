@@ -20,7 +20,7 @@
  */
 
 // Initial header:
- 
+
 /************************************/
 /*      Programmé par : Epok__      */
 /*        Date : 22/07/2005         */
@@ -37,56 +37,35 @@
 /************************************/
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Windows.Forms;
 
 namespace Bitmap_Converter
 {
+
     public partial class FenêtrePrincipale : Form
     {
-        private Moteur moteur;
+        private Erreurs erreurs;
 
-        public FenêtrePrincipale(Moteur m)
+        public event DémarrerConversionEventHandler    DémarrerConversion;
+        public event InterrompreConversionEventHandler InterrompreConversion;
+
+        public FenêtrePrincipale(Erreurs erreurs)
         {
-            moteur = m;
+            this.erreurs = erreurs;
 
             InitializeComponent();
 
-            Actualiser(new object(), new EventArgs());
+            barreDeProgression.Minimum = 0;
+            barreDeProgression.Step = 1;
+
+            ActualiserListe();
         }
 
-        public void AvancerDUnCran()
-        {
-            barreDeProgression.PerformStep();
-        }
+        // Public
 
-        public void PassageEnModeSuppression(int nombreObjetsASupprimer)
-        {
-            texteDEtat.Text = "Suppression des fichiers sources en cours...";
-            barreDeProgression.Value = 0;
-            barreDeProgression.Maximum = nombreObjetsASupprimer;
-        }
-
-        public void ConversionTerminée()
-        {
-            texteDEtat.Text = "Conversion Terminée";
-
-            moteur.AfficherLesErreurs();
-        }
-
-        public void Actualiser(object sender, EventArgs e)
-        {
-            texteDEtat.Text = "En attente pour la conversion...";
-            liste.Items.Clear();
-            barreDeProgression.Value = 0;
-            OperationsSurLaListe o = new OperationsSurLaListe(moteur.Paramètres);
-            ListBox.ObjectCollection nouvelleListe = o.GetListe();
-            foreach (object s in nouvelleListe)
-            {
-                liste.Items.Add(s);
-            }
-        }
-
-        public void Bloquer()
+        public void ProcessusDémarré()
         {
             liste.Enabled = false;
             sélectionnerTout.Enabled = false;
@@ -97,8 +76,26 @@ namespace Bitmap_Converter
             interrompre.Visible = true;
         }
 
-        public void Débloquer()
+        public void PasserEnModeConversion(int nombre)
         {
+            texteDEtat.Text = "Conversion en cours...";
+
+            barreDeProgression.Value = 0;
+            barreDeProgression.Maximum = nombre;            
+        }
+
+        public void PasserEnModeSuppression(int nombreObjetsASupprimer)
+        {
+            texteDEtat.Text = "Suppression des fichiers sources en cours...";
+
+            barreDeProgression.Value = 0;
+            barreDeProgression.Maximum = nombreObjetsASupprimer;
+        }
+
+        public void ProcessusTerminé()
+        {
+            texteDEtat.Text = "Conversion Terminée";
+
             liste.Enabled = true;
             sélectionnerTout.Enabled = true;
             actualiser.Enabled = true;
@@ -106,9 +103,40 @@ namespace Bitmap_Converter
             barreDeMenus.Enabled = true;
 
             interrompre.Visible = false;
+
+            AfficherLesErreurs();
         }
 
-        private void SélectionnerTout(object sender, EventArgs e)
+        public void AvancerDUnCran()
+        {
+            barreDeProgression.PerformStep();
+        }
+
+
+        // Privé
+
+        private void ActualiserListe()
+        {
+            texteDEtat.Text = "En attente pour la conversion...";
+            barreDeProgression.Value = 0;
+
+            liste.Items.Clear();
+            SortedList<int, string> nouvelleListe = GénérateurDeListes.GénérerListe();
+            foreach (string s in nouvelleListe.Values)
+            {
+                liste.Items.Add(s);
+            }
+        }
+
+        private void AfficherLesErreurs()
+        {
+            if (this.erreurs.erreur)
+                (new FenêtreErreurs(this.erreurs)).ShowDialog();
+            else
+                MessageBox.Show("Pas d'erreurs lors de la conversion.", "Résultat de la conversion");
+        }
+
+        private void UserRequest_SélectionnerTout(object sender, EventArgs e)
         {
             for (int i = 0; i < liste.Items.Count; i++)
             {
@@ -116,7 +144,7 @@ namespace Bitmap_Converter
             }
         }
 
-        private void DésélectionnerTout(object sender, EventArgs e)
+        private void UserRequest_DésélectionnerTout(object sender, EventArgs e)
         {
             for (int i = 0; i < liste.Items.Count; i++)
             {
@@ -124,36 +152,50 @@ namespace Bitmap_Converter
             }
         }
 
-        private void Convertir(object sender, EventArgs e)
-        {
-            barreDeProgression.Minimum = 0;
-            barreDeProgression.Maximum = liste.SelectedItems.Count;
-            barreDeProgression.Value = 0;
-            barreDeProgression.Step = 1;
-            texteDEtat.Text = "Conversion en cours...";
-
-            moteur.Convertir(liste.SelectedItems);
-
-        }
-
-        private void AProposDe(object sender, EventArgs e)
+        private void UserRequest_AfficherAProposDe(object sender, EventArgs e)
         {
             (new APropos()).ShowDialog();
         }
 
-        private void OuvrirOptions(object sender, EventArgs e)
+        private void UserRequest_OuvrirOptions(object sender, EventArgs e)
         {
-            moteur.ModifierOptions();
+            FenêtreOptions f = new FenêtreOptions();
+
+            DialogResult d = f.ShowDialog();
+
+            if (d == DialogResult.OK)
+            {
+                f.Dispose();
+                ActualiserListe();
+            }
         }
 
-        private void AfficherLesErreurs(object sender, EventArgs e)
+        private void UserRequest_AfficherErreurs(object sender, EventArgs e)
         {
-            moteur.AfficherLesErreurs();
+            AfficherLesErreurs();
         }
 
-        private void Interrompre(object sender, EventArgs e)
+        private void UserRequest_Interrompre(object sender, EventArgs e)
         {
-            moteur.InterrompreConversion();
+            InterrompreConversion();
+        }
+
+        private void UserRequest_Convertir(object sender, EventArgs e)
+        {
+            ArrayList listeConv = new ArrayList();
+
+            foreach (string s in liste.SelectedItems)
+            {
+                listeConv.Add(s);
+            }
+
+            DémarrerConversion(listeConv);
+
+        }
+
+        private void UserRequest_Actualiser(object sender, EventArgs e)
+        {
+            ActualiserListe();
         }
     }
 }

@@ -1,4 +1,4 @@
-# Bitmap Converter Version 1.2
+# Bitmap Converter Version 1.3
 
 (Only in French! For now at least.)
 

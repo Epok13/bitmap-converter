@@ -27,61 +27,52 @@ namespace Bitmap_Converter
 {
     public partial class FenêtreOptions : Form
     {
-        private Paramètres paramètres;
 
-        /// <summary>
-        /// Constructeur par défaut : appellé en début de programme,
-        /// il initialise un nouvel objet Paramètres.
-        /// </summary>
-        public FenêtreOptions()
-        {
-            InitializeComponent();
-
-            this.Text = "Entrez les paramètre de la conversion";
-            annuler.Text = "Quitter";
-
-            paramètres = new Paramètres();
-
-            Initialiser();
-        }
+        bool initialisé = false;
 
         /// <summary>
         /// Ce contructeur est appellé en cours de programme, afin
         /// de modifier une option.
         /// </summary>
         /// <param name="p">Les paramètres en cours.</param>
-        public FenêtreOptions(Paramètres p)
+        public FenêtreOptions(bool initial = false)
         {
             InitializeComponent();
 
-            paramètres = p;
+            if (initial == true)
+            {
+                // Comportement spécifique à la première overture: quitter au lieu d'annuler
+                this.Text = "Entrez les paramètre de la conversion";
+                this.annuler.Text = "Quitter";
+            }
 
             Initialiser();
         }
 
+        /// <summary>
+        /// Remplis dynamiquement les listes de format et initialise les valeurs des items graphiques
+        /// </summary>
         private void Initialiser()
         {
-            formatDEntree.Items.Add(Format.Bmp);
-            formatDEntree.Items.Add(Format.Gif);
-            formatDEntree.Items.Add(Format.Jpeg);
-            formatDEntree.Items.Add(Format.Png);
-            formatDEntree.Items.Add(Format.Tiff);
-            formatDEntree.Items.Add(Format.Wmf);
+            foreach (Format format in Enum.GetValues(typeof(Format)))
+            {
+                this.formatDEntree.Items.Add(format);
+            }
 
-            formatSortie.Items.Add(Format.Bmp);
-            formatSortie.Items.Add(Format.Gif);
-            formatSortie.Items.Add(Format.Jpeg);
-            formatSortie.Items.Add(Format.Png);
-            formatSortie.Items.Add(Format.Tiff);
-            formatSortie.Items.Add(Format.Wmf);
+            // Ceci remplit automatiquement la liste des formats cibles
+            this.formatDEntree.SelectedItem = FormatFromString(Properties.Settings.Default.SourceType);
 
-            // Ne SURTOUT PAS modifier l'ordre des 2 commandes ci-dessous !
-            formatSortie.SelectedItem = paramètres.formatDeSortie;
-            formatDEntree.SelectedItem = paramètres.formatDEntrée;
-            
-            inclureSousRepertoires.Checked = paramètres.inclureLesSousRépertoires;
-            supprimerSources.Checked = paramètres.supprimerLesSources;
-            chemin.Text = paramètres.dossierCourant;
+
+            this.inclureSousRepertoires.Checked = Properties.Settings.Default.RecursiveListing;
+            this.supprimerSources.Checked       = Properties.Settings.Default.DeleteSources;
+
+            if (Directory.Exists(Properties.Settings.Default.FolderPath))
+                this.chemin.Text = Properties.Settings.Default.FolderPath;
+            else
+                this.chemin.Text = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+
+            this.initialisé = true;
+
         } // Fin de la méthode initialiser
 
         private void Parcourir(object sender, EventArgs e)
@@ -99,50 +90,61 @@ namespace Bitmap_Converter
 
         private void ok_Click(object sender, EventArgs e)
         {
-            // Tester la validité du dossierCourant avant d'accepter le clic sur ok
-            // + tester le format (retour aux bonnes vielles méthodes ?). sinon :
-            //if (formatDEntree.SelectedItem == formatSortie.SelectedItem) gnagnagna...
+            if (Directory.Exists(chemin.Text))
+            {
+                Properties.Settings.Default.FolderPath = chemin.Text;
 
-            if (Directory.Exists(chemin.Text)) paramètres.dossierCourant = chemin.Text;
+                Properties.Settings.Default.SourceType = ((Format)formatDEntree.SelectedItem).ToString();
+                Properties.Settings.Default.TargetType = ((Format)formatSortie.SelectedItem).ToString();
+                Properties.Settings.Default.RecursiveListing = inclureSousRepertoires.Checked;
+                Properties.Settings.Default.DeleteSources = supprimerSources.Checked;
+
+                Properties.Settings.Default.Save();
+            }
             else
             {
                 MessageBox.Show("Le chemin que vous avez entré n'est pas correct. Vérifiez que le répertoire existe.");
-                return;
-            }
-            paramètres.formatDEntrée = (Format) formatDEntree.SelectedItem;
-            paramètres.formatDeSortie = (Format) formatSortie.SelectedItem;
-            paramètres.inclureLesSousRépertoires = inclureSousRepertoires.Checked;
-            paramètres.supprimerLesSources = supprimerSources.Checked;
-        }
-
-        private void chemin_TextChanged(object sender, EventArgs e)
-        {
-            paramètres.dossierCourant = chemin.Text;
-        }
-
-        public Paramètres Paramètres
-        {
-            get
-            {
-                return paramètres;
             }
         }
 
         private void formatDEntree_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Format sortie = (Format)formatSortie.SelectedItem;
+            Format formatSortiePrecedent;
+            if (this.initialisé == true)
+            {
+                formatSortiePrecedent = (Format)formatSortie.SelectedItem;
+            }
+            else
+            {
+                formatSortiePrecedent = FormatFromString(Properties.Settings.Default.TargetType);
+            }
+
             formatSortie.Items.Clear();
 
-            if ((Format) formatDEntree.SelectedItem != Format.Bmp) formatSortie.Items.Add(Format.Bmp);
-            if ((Format)formatDEntree.SelectedItem != Format.Gif) formatSortie.Items.Add(Format.Gif);
-            if ((Format)formatDEntree.SelectedItem != Format.Jpeg) formatSortie.Items.Add(Format.Jpeg);
-            if ((Format)formatDEntree.SelectedItem != Format.Png) formatSortie.Items.Add(Format.Png);
-            if ((Format)formatDEntree.SelectedItem != Format.Tiff) formatSortie.Items.Add(Format.Tiff);
-            if ((Format)formatDEntree.SelectedItem != Format.Wmf) formatSortie.Items.Add(Format.Wmf);
-
-            if (sortie != (Format) formatDEntree.SelectedItem) formatSortie.SelectedItem = sortie;
-            else if ((Format) formatDEntree.SelectedItem != Format.Jpeg) formatSortie.SelectedItem = Format.Jpeg;
-            else formatSortie.SelectedItem = Format.Bmp;
+            foreach (Format format in Enum.GetValues(typeof(Format)))
+            {
+                if ((Format)formatDEntree.SelectedItem != format)
+                    formatSortie.Items.Add(format);
+            }
+            
+            if (formatSortiePrecedent != (Format)formatDEntree.SelectedItem)
+                formatSortie.SelectedItem = formatSortiePrecedent;
+            else if ((Format)formatDEntree.SelectedItem != Format.Jpeg)
+                formatSortie.SelectedItem = Format.Jpeg;
+            else
+                formatSortie.SelectedItem = Format.Png;
         }
+
+        private Format FormatFromString(string formatString)
+        {
+            foreach (Format format in Enum.GetValues(typeof(Format)))
+            {
+                if (format.ToString() == formatString)
+                    return format;
+            }
+
+            return Format.Bmp;
+        }
+
     }
 }

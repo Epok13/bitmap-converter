@@ -19,142 +19,133 @@
  * along with Bitmap Converter. If not, see <http://www.gnu.org/licenses/>.
  */
 
-using System;
 using System.Windows.Forms;
 using System.Threading;
 using System.Collections;
 
 namespace Bitmap_Converter
 {
+    public delegate void DémarrerConversionEventHandler(ArrayList listeDesObjetsSelectionnés);
+    public delegate void InterrompreConversionEventHandler();
+
     /// <summary>
-    /// Moteur centralise les échanges entre les diférents threads.
+    /// Le moteur centralise les échanges entre les diférents threads.
+    /// Il AGIT sur les threads, et recoit de EVENEMENTS de leur part.
     /// </summary>
     public sealed class Moteur
     {
-        private Paramètres paramètres;
-        private FenêtrePrincipale fenêtre;
         private Thread threadConversion;
+        private FenêtrePrincipale fenêtre;
+        private Convertisseur convertisseur;
         private Erreurs erreurs;
-
-        /// <summary>
-        /// Crée un objet moteur initialisé aux
-        /// paramètres par défaut.
-        /// </summary>
-        public Moteur()
-        {
-            Initialiser();
-        }
 
         /// <summary>
         /// Initialisation du moteur : on
         /// ouvre la fenêtre d'options puis
         /// on lance la fenêtre principale.
+        /// 
+        /// Comme c'est le moteur qui gère la boucle d'application,
+        /// on peut se permettre de faire Exit() si nécessaire.
         /// </summary>
-        private void Initialiser()
+        public Moteur()
         {
-            FenêtreOptions f = new FenêtreOptions();
+            FenêtreOptions f = new FenêtreOptions(true);
 
             DialogResult d = f.ShowDialog();
 
+            f.Dispose();
+
             if (d == DialogResult.OK)
             {
-                paramètres = f.Paramètres;
-                erreurs = new Erreurs();
-                f.Dispose();
+                this.erreurs = new Erreurs();
 
-                fenêtre = new FenêtrePrincipale(this);
+                this.fenêtre = new FenêtrePrincipale(this.erreurs);
 
-                Application.Run(fenêtre);
+                // Abonnement aux évènements fournis par l'IU
+                this.fenêtre.DémarrerConversion    += Convertir;
+                this.fenêtre.InterrompreConversion += Interrompre;
+                
+                Application.Run(this.fenêtre);
             }
-
-            else Application.Exit();
+            else
+                Application.Exit();
         }
 
         /// <summary>
         /// L'utilisateur à lancé le processus de conversion
         /// </summary>
         /// <param name="listeDesObjetsSelectionnés"></param>
-        public void Convertir(ListBox.SelectedObjectCollection listeDesObjetsSelectionnés)
+        private void Convertir(ArrayList listeDesObjetsSelectionnés)
         {
-            fenêtre.Bloquer();
-            // Gérer les accès du thread
-            Convertisseur conv = new Convertisseur(this, ToListe(listeDesObjetsSelectionnés));
-            threadConversion = new Thread(new ThreadStart(conv.Convertir));
-            threadConversion.Start();
-        }
+            erreurs.Reset();
+            convertisseur = new Convertisseur(this.erreurs, listeDesObjetsSelectionnés);
 
-        /// <summary>
-        /// Conversion vers format de liste ArrayList
-        /// </summary>
-        /// <param name="l"></param>
-        /// <returns></returns>
-        private ArrayList ToListe(ListBox.SelectedObjectCollection listeIn)
-        {
-            ArrayList listeOut = new ArrayList();
-            foreach (string s in listeIn)
-            {
-                listeOut.Add(s);
-            }
-            return listeOut;
-        }
+            // Abonnement aux évènements fournis par le thread de conversion
+            convertisseur.DémarrageProcessus += this.DémarrageProcessus;
+            convertisseur.ProcessusTerminé += this.ProcessusTerminé;
 
-        /// <summary>
-        /// Afficher la fenêtre des erreurs.
-        /// </summary>
-        public void AfficherLesErreurs()
-        {
-            if (erreurs.erreur)
-                (new FenêtreErreurs(erreurs)).ShowDialog();
-            else MessageBox.Show("Pas d'erreurs lors de la conversion.", "Résultat de la conversion");
+            this.threadConversion = new Thread(new ThreadStart(convertisseur.Convertir));
+            this.threadConversion.Start();
         }
 
         /// <summary>
         /// Interruption de la conversion par l'utilisateur
         /// </summary>
-        public void InterrompreConversion()
+        private void Interrompre()
         {
-            // NE doit pas interrompre le thread n'importe quand
-            threadConversion.Interrupt();
+            this.convertisseur.Interrompre();
         }
 
-        /// <summary>
-        /// Afficher la fenêtre de modification des options
-        /// </summary>
-        public void ModifierOptions()
+        private delegate void InvoquerLesEspritsDeLaFenêtrePrincipale();
+        private delegate void InvoquerLesEspritsAvecValeur(int i);
+
+        private void DémarrageProcessus()
         {
-            FenêtreOptions f = new FenêtreOptions(paramètres);
+            convertisseur.DémarrageProcessus -= this.DémarrageProcessus;
 
-            DialogResult d = f.ShowDialog();
+            convertisseur.DémarrageConversion += this.PassageEnModeConversion;
 
-            if (d == DialogResult.OK)
-            {
-                paramètres = f.Paramètres;
-                f.Dispose();
-                fenêtre.Actualiser(new object(), new EventArgs());
-            }
+            // Evènement déclenché par un thread différent: invoquer
+            this.fenêtre.Invoke(new InvoquerLesEspritsDeLaFenêtrePrincipale(this.fenêtre.ProcessusDémarré));
         }
 
-        // Pour que les autres objets aient un accès direct entre eux
-        public Paramètres Paramètres
+        private void PassageEnModeConversion(int nombre)
         {
-            get
-            {
-                return paramètres;
-            }
+            convertisseur.DémarrageConversion -= this.PassageEnModeConversion;
+
+            convertisseur.FichierConverti += this.AvancerBarreDeProgression;
+            if (Properties.Settings.Default.DeleteSources == true)
+                convertisseur.DémarrageSuppression += this.PassageEnModeSuppression;
+
+            // Evènement déclenché par un thread différent: invoquer
+            this.fenêtre.Invoke(new InvoquerLesEspritsAvecValeur(this.fenêtre.PasserEnModeConversion), new object[] { nombre });
         }
-        public FenêtrePrincipale Fenêtre
+
+        private void PassageEnModeSuppression(int nombre)
         {
-            get
-            {
-                return fenêtre;
-            } 
+            convertisseur.DémarrageSuppression -= this.PassageEnModeSuppression;
+            convertisseur.FichierConverti -= this.AvancerBarreDeProgression;
+
+            convertisseur.FichierSupprimé += this.AvancerBarreDeProgression;
+
+            // Evènement déclenché par un thread différent: invoquer
+            this.fenêtre.Invoke(new InvoquerLesEspritsAvecValeur(this.fenêtre.PasserEnModeSuppression), new object[] { nombre });
         }
-        public Erreurs Erreurs
+
+        private void ProcessusTerminé()
         {
-            get
-            {
-                return erreurs;
-            }
+            // Evènement déclenché par un thread différent: invoquer
+            this.fenêtre.Invoke(new InvoquerLesEspritsDeLaFenêtrePrincipale(this.fenêtre.ProcessusTerminé));
+
+            threadConversion = null;
+            convertisseur    = null;
         }
+
+        private void AvancerBarreDeProgression()
+        {
+            // Evènement déclenché par un thread différent: invoquer
+            this.fenêtre.Invoke(new InvoquerLesEspritsDeLaFenêtrePrincipale(this.fenêtre.AvancerDUnCran));
+        }
+
     }
 }

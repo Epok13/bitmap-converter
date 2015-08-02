@@ -30,17 +30,18 @@ namespace Bitmap_Converter
         {
             InitializeComponent();
 
-            erronés.Items.AddRange(erreurs.erronés.ToArray());
+            this.erronés.Items.AddRange(erreurs.erronés.ToArray());
 
             if (erreurs.nonSupprimés.Count != 0)
             {
-                nonSupprimés.Items.AddRange(erreurs.nonSupprimés.ToArray());
+                this.nonSupprimés.Items.AddRange(erreurs.nonSupprimés.ToArray());
             }
             else
             {
-                nonSupprimés.Visible = false;
-                labelNote.Visible = false;
-                texteNonSupprimés.Visible = false;
+                this.nonSupprimés.Visible = false;
+                this.texteNonSupprimés.Visible = false;
+                if (Properties.Settings.Default.DeleteSources == false)
+                    this.labelNote.Visible = false;
             }
 
             ToolTip toolTip = new ToolTip();

@@ -59,7 +59,7 @@ namespace Bitmap_Converter
             this.sélectionnerTout.TabIndex = 0;
             this.sélectionnerTout.Text = "Sélectionner tout";
             this.sélectionnerTout.UseVisualStyleBackColor = true;
-            this.sélectionnerTout.Click += new System.EventHandler(this.SélectionnerTout);
+            this.sélectionnerTout.Click += new System.EventHandler(this.UserRequest_SélectionnerTout);
             // 
             // convertir
             // 
@@ -69,7 +69,7 @@ namespace Bitmap_Converter
             this.convertir.TabIndex = 2;
             this.convertir.Text = "Convertir la sélection";
             this.convertir.UseVisualStyleBackColor = true;
-            this.convertir.Click += new System.EventHandler(this.Convertir);
+            this.convertir.Click += new System.EventHandler(this.UserRequest_Convertir);
             // 
             // actualiser
             // 
@@ -79,7 +79,7 @@ namespace Bitmap_Converter
             this.actualiser.TabIndex = 3;
             this.actualiser.Text = "Actualiser la liste";
             this.actualiser.UseVisualStyleBackColor = true;
-            this.actualiser.Click += new System.EventHandler(this.Actualiser);
+            this.actualiser.Click += new System.EventHandler(this.UserRequest_Actualiser);
             // 
             // liste
             // 
@@ -114,7 +114,7 @@ namespace Bitmap_Converter
             this.menuOptions.Name = "menuOptions";
             this.menuOptions.Size = new System.Drawing.Size(56, 20);
             this.menuOptions.Text = "&Options";
-            this.menuOptions.Click += new System.EventHandler(this.OuvrirOptions);
+            this.menuOptions.Click += new System.EventHandler(this.UserRequest_OuvrirOptions);
             // 
             // menuActions
             // 
@@ -133,35 +133,35 @@ namespace Bitmap_Converter
             this.itemActualiser.Name = "itemActualiser";
             this.itemActualiser.Size = new System.Drawing.Size(382, 22);
             this.itemActualiser.Text = "Actualiser la liste";
-            this.itemActualiser.Click += new System.EventHandler(this.Actualiser);
+            this.itemActualiser.Click += new System.EventHandler(this.UserRequest_Actualiser);
             // 
             // itemSélectionner
             // 
             this.itemSélectionner.Name = "itemSélectionner";
             this.itemSélectionner.Size = new System.Drawing.Size(382, 22);
             this.itemSélectionner.Text = "Sélectionner tous les élements";
-            this.itemSélectionner.Click += new System.EventHandler(this.SélectionnerTout);
+            this.itemSélectionner.Click += new System.EventHandler(this.UserRequest_SélectionnerTout);
             // 
             // itemDéselectionner
             // 
             this.itemDéselectionner.Name = "itemDéselectionner";
             this.itemDéselectionner.Size = new System.Drawing.Size(382, 22);
             this.itemDéselectionner.Text = "Déselectionner tous les éléments";
-            this.itemDéselectionner.Click += new System.EventHandler(this.DésélectionnerTout);
+            this.itemDéselectionner.Click += new System.EventHandler(this.UserRequest_DésélectionnerTout);
             // 
             // itemConvertir
             // 
             this.itemConvertir.Name = "itemConvertir";
             this.itemConvertir.Size = new System.Drawing.Size(382, 22);
             this.itemConvertir.Text = "Démarrer la conversion";
-            this.itemConvertir.Click += new System.EventHandler(this.Convertir);
+            this.itemConvertir.Click += new System.EventHandler(this.UserRequest_Convertir);
             // 
             // itemAfficherLesErreurs
             // 
             this.itemAfficherLesErreurs.Name = "itemAfficherLesErreurs";
             this.itemAfficherLesErreurs.Size = new System.Drawing.Size(382, 22);
             this.itemAfficherLesErreurs.Text = "Afficher les erreurs rencontrées lors de la dernière conversion";
-            this.itemAfficherLesErreurs.Click += new System.EventHandler(this.AfficherLesErreurs);
+            this.itemAfficherLesErreurs.Click += new System.EventHandler(this.UserRequest_AfficherErreurs);
             // 
             // menuAide
             // 
@@ -176,7 +176,7 @@ namespace Bitmap_Converter
             this.itemAPropos.Name = "itemAPropos";
             this.itemAPropos.Size = new System.Drawing.Size(155, 22);
             this.itemAPropos.Text = "A propos de...";
-            this.itemAPropos.Click += new System.EventHandler(this.AProposDe);
+            this.itemAPropos.Click += new System.EventHandler(this.UserRequest_AfficherAProposDe);
             // 
             // barreDEtat
             // 
@@ -213,7 +213,7 @@ namespace Bitmap_Converter
             this.interrompre.Text = "Interrompre la conversion";
             this.interrompre.UseVisualStyleBackColor = true;
             this.interrompre.Visible = false;
-            this.interrompre.Click += new System.EventHandler(this.Interrompre);
+            this.interrompre.Click += new System.EventHandler(this.UserRequest_Interrompre);
             // 
             // FenêtrePrincipale
             // 

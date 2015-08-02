@@ -25,116 +25,195 @@ using System.Collections;
 
 namespace Bitmap_Converter
 {
-    public sealed class Convertisseur
-    {
-        private Moteur moteur;
+    public delegate void DémarrageProcessusEventHandler();
 
-        private Paramètres paramètres;
+    public delegate void DémarrageConversionEventHandler(int nombre);
+    public delegate void FichierConvertiEventHandler();
+    public delegate void ConversionTerminéeEventHandler();
+
+    public delegate void DémarrageSuppressionEventHandler(int nombre);
+    public delegate void FichierSuppriméEventHandler();
+    public delegate void SuppressionTerminéeEventHandler();
+
+    public delegate void ProcessusTerminéEventHandler();
+    
+    sealed class Convertisseur
+    {
+        public event DémarrageProcessusEventHandler   DémarrageProcessus;
+        public event DémarrageConversionEventHandler  DémarrageConversion;
+        public event FichierConvertiEventHandler      FichierConverti;
+        public event ConversionTerminéeEventHandler   ConversionTerminée;
+        public event DémarrageSuppressionEventHandler DémarrageSuppression;
+        public event FichierSuppriméEventHandler      FichierSupprimé;
+        public event SuppressionTerminéeEventHandler  SuppressionTerminée;
+        public event ProcessusTerminéEventHandler     ProcessusTerminé;
+
+        private Erreurs erreurs;
 
         private ArrayList
+            listeDesObjetsATraiter,
             listeErronés,
-            listeNonSupprimés,
-            listeDesObjetsATraiter;
+            listeNonSupprimés;
 
-        private delegate void InvoquerLesEspritsDeLaFenêtrePrincipale();
-        private delegate void InvoquerLesEspritsAvecValeur(int i);
+        private bool continuer;
 
-        public Convertisseur(Moteur m, ArrayList l)
+        public Convertisseur(Erreurs erreurs, ArrayList liste)
         {
-            listeErronés = new ArrayList();
-            listeNonSupprimés = new ArrayList();
-            listeDesObjetsATraiter = l;
-            moteur = m;
-            paramètres = m.Paramètres;
+            this.listeDesObjetsATraiter = liste;
+            this.erreurs = erreurs;
+
+            this.listeErronés = new ArrayList();
+            this.listeNonSupprimés = new ArrayList();
+            this.continuer = true;
         }
 
         /// <summary>
         /// Convertir les fichiers selon les paramètres.
+        /// Il s'agit de la boucle principale du thread.
         /// </summary>
-        /// <param name="listeDesObjetsATraiter">Fichiers à convertir</param>
         public void Convertir()
         {
-            foreach (string s in listeDesObjetsATraiter)
+            // Event
+            if (DémarrageProcessus != null)
+                DémarrageProcessus();
+
+            // Event
+            if (DémarrageConversion != null)
+                DémarrageConversion(this.listeDesObjetsATraiter.Count);
+
+            foreach (string s in this.listeDesObjetsATraiter)
             {
-                try
-                {
-                    string nom = "";
-
-                    Bitmap image = new Bitmap(s);
-
-					if (paramètres.formatDeSortie == Format.Bmp)
-					{
-						nom = s.Replace(Path.GetExtension(s), ".bmp");
-						if (!File.Exists(nom)) image.Save(nom, System.Drawing.Imaging.ImageFormat.Bmp);
-						else listeErronés.Add(s);
-					}
-					else if (paramètres.formatDeSortie == Format.Gif)
-					{
-						nom = s.Replace(Path.GetExtension(s), ".gif");
-						if (!File.Exists(nom)) image.Save(nom, System.Drawing.Imaging.ImageFormat.Gif);
-						else listeErronés.Add(s);
-					}
-					else if (paramètres.formatDeSortie == Format.Jpeg)
-					{
-						nom = s.Replace(Path.GetExtension(s), ".jpg");
-						if (!File.Exists(nom)) image.Save(nom, System.Drawing.Imaging.ImageFormat.Jpeg);
-						else listeErronés.Add(s);
-					}
-					else if (paramètres.formatDeSortie == Format.Png)
-					{
-						nom = s.Replace(Path.GetExtension(s), ".png");
-						if (!File.Exists(nom)) image.Save(nom, System.Drawing.Imaging.ImageFormat.Png);
-						else listeErronés.Add(s);
-					}
-					else if (paramètres.formatDeSortie == Format.Tiff)
-					{
-						nom = s.Replace(Path.GetExtension(s), ".tif");
-						if (!File.Exists(nom)) image.Save(nom, System.Drawing.Imaging.ImageFormat.Tiff);
-						else listeErronés.Add(s);
-					}
-					else if (paramètres.formatDeSortie == Format.Wmf)
-					{
-						nom = s.Replace(Path.GetExtension(s), ".wmf");
-						if (!File.Exists(nom)) image.Save(nom, System.Drawing.Imaging.ImageFormat.Wmf);
-						else listeErronés.Add(s);
-					}
-
-                    image.Dispose();
-                }
-                catch
-                {
-                    listeErronés.Add(s);
-                }
-                moteur.Fenêtre.Invoke(new InvoquerLesEspritsDeLaFenêtrePrincipale(moteur.Fenêtre.AvancerDUnCran));
-            }
-
-            if (paramètres.supprimerLesSources)
-            {
-                moteur.Fenêtre.Invoke(new InvoquerLesEspritsAvecValeur(moteur.Fenêtre.PassageEnModeSuppression), new object[] { (listeDesObjetsATraiter.Count - listeErronés.Count) });
-
-                foreach (string s in listeDesObjetsATraiter)
+                if (continuer == true)
                 {
                     try
                     {
-                        if (!listeErronés.Contains(s)) File.Delete(s);
+                        string nom = "";
+
+                        Bitmap image = new Bitmap(s);
+
+                        if (Properties.Settings.Default.TargetType == Format.Bmp.ToString())
+                        {
+                            nom = s.Replace(Path.GetExtension(s), ".bmp");
+                            if (!File.Exists(nom))
+                                image.Save(nom, System.Drawing.Imaging.ImageFormat.Bmp);
+                            else
+                                this.listeErronés.Add(s);
+                        }
+                        else if (Properties.Settings.Default.TargetType == Format.Gif.ToString())
+                        {
+                            nom = s.Replace(Path.GetExtension(s), ".gif");
+                            if (!File.Exists(nom))
+                                image.Save(nom, System.Drawing.Imaging.ImageFormat.Gif);
+                            else
+                                this.listeErronés.Add(s);
+                        }
+                        else if (Properties.Settings.Default.TargetType == Format.Jpeg.ToString())
+                        {
+                            nom = s.Replace(Path.GetExtension(s), ".jpg");
+                            if (!File.Exists(nom))
+                                image.Save(nom, System.Drawing.Imaging.ImageFormat.Jpeg);
+                            else
+                                this.listeErronés.Add(s);
+                        }
+                        else if (Properties.Settings.Default.TargetType == Format.Png.ToString())
+                        {
+                            nom = s.Replace(Path.GetExtension(s), ".png");
+                            if (!File.Exists(nom))
+                                image.Save(nom, System.Drawing.Imaging.ImageFormat.Png);
+                            else
+                                this.listeErronés.Add(s);
+                        }
+                        else if (Properties.Settings.Default.TargetType == Format.Tiff.ToString())
+                        {
+                            nom = s.Replace(Path.GetExtension(s), ".tif");
+                            if (!File.Exists(nom))
+                                image.Save(nom, System.Drawing.Imaging.ImageFormat.Tiff);
+                            else
+                                this.listeErronés.Add(s);
+                        }
+                        else if (Properties.Settings.Default.TargetType == Format.Wmf.ToString())
+                        {
+                            nom = s.Replace(Path.GetExtension(s), ".wmf");
+                            if (!File.Exists(nom))
+                                image.Save(nom, System.Drawing.Imaging.ImageFormat.Wmf);
+                            else
+                                this.listeErronés.Add(s);
+                        }
+                        else // Si propritété mal initialisée
+                            this.listeErronés.Add(s);
+
+                        image.Dispose();
                     }
                     catch
                     {
-                        listeNonSupprimés.Add(s);
+                        this.listeErronés.Add(s);
                     }
-                    moteur.Fenêtre.Invoke(new InvoquerLesEspritsDeLaFenêtrePrincipale(moteur.Fenêtre.AvancerDUnCran));
+
+                    // Event
+                    if (FichierConverti != null)
+                        FichierConverti();
                 }
+                else
+                    break;
             }
 
+            this.erreurs.erronés = this.listeErronés;
 
-            moteur.Erreurs.erronés = listeErronés;
-            moteur.Erreurs.nonSupprimés = listeNonSupprimés;
-            if ((listeErronés.Count != 0) || (listeNonSupprimés.Count != 0)) moteur.Erreurs.erreur = true;
-            else moteur.Erreurs.erreur = false;
+            // Event
+            if (ConversionTerminée != null)
+                ConversionTerminée();
 
-            moteur.Fenêtre.Invoke(new InvoquerLesEspritsDeLaFenêtrePrincipale(moteur.Fenêtre.ConversionTerminée));
+            if ((Properties.Settings.Default.DeleteSources == true) &&  (continuer == true))
+            {
+                // Event
+                if (DémarrageSuppression != null)
+                    DémarrageSuppression(this.listeDesObjetsATraiter.Count - this.listeErronés.Count);
 
-            moteur.Fenêtre.Invoke(new InvoquerLesEspritsDeLaFenêtrePrincipale(moteur.Fenêtre.Débloquer));
+                foreach (string s in this.listeDesObjetsATraiter)
+                {
+                    if (continuer == true)
+                    {
+                        try
+                        {
+                            if (!this.listeErronés.Contains(s))
+                                File.Delete(s);
+                        }
+                        catch
+                        {
+                            this.listeNonSupprimés.Add(s);
+                        }
+
+                        // Event
+                        if (FichierSupprimé != null)
+                            FichierSupprimé();
+                    }
+                    else
+                        break;
+                }
+
+                this.erreurs.nonSupprimés = this.listeNonSupprimés;
+
+                // Event
+                if (SuppressionTerminée != null)
+                    SuppressionTerminée();
+            }
+
+            if ((this.listeErronés.Count != 0) || (this.listeNonSupprimés.Count != 0))
+                this.erreurs.erreur = true;
+            else
+                this.erreurs.erreur = false;
+
+            // Event
+            if (ProcessusTerminé != null)
+                ProcessusTerminé();
+        }
+
+        /// <summary>
+        /// Interrompt le processus proprement
+        /// </summary>
+        public void Interrompre()
+        {
+            this.continuer = false;
         }
 
     }

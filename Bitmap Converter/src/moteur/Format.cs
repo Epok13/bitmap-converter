@@ -21,8 +21,11 @@
 
 namespace Bitmap_Converter
 {
+    /// <summary>
+    /// Liste des formats supportés
+    /// </summary>
     public enum Format
     {
-        Bmp, Gif, Jpeg, Png, Tiff, Wmf
+        Bmp, Jpeg, Png, Gif, Tiff, Wmf
     }
-}
+} 

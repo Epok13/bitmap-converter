@@ -28,7 +28,7 @@ namespace Bitmap_Converter
     { 
         /// <summary>
         /// Point d'entrée principal de l'application.
-		/// Regle les options d'affichage, puis lance l'application
+		/// Règle les options d'affichage, puis lance l'application
 		/// en créant un objet de type Moteur.
         /// </summary>
         [STAThread]

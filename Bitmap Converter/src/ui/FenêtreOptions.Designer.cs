@@ -78,7 +78,6 @@
             this.chemin.Name = "chemin";
             this.chemin.Size = new System.Drawing.Size(476, 20);
             this.chemin.TabIndex = 0;
-            this.chemin.TextChanged += new System.EventHandler(this.chemin_TextChanged);
             // 
             // inclureSousRepertoires
             // 

@@ -19,38 +19,36 @@
  * along with Bitmap Converter. If not, see <http://www.gnu.org/licenses/>.
  */
 
-using System.Windows.Forms;
 using System.IO;
+using System.Collections.Generic;
+using System.Collections;
 
 namespace Bitmap_Converter
 {
-    class OperationsSurLaListe
+    static class GénérateurDeListes
     {
-        private Paramètres paramètres;
-        private ListBox.ObjectCollection listeFichiers;  // Changer le type de stockage
-
-        public OperationsSurLaListe(Paramètres p)
-        {
-            paramètres = p;
-        }
-
+        private static SortedList<int, string> listeFichiers;
+        
         /// <summary>
         /// Retourne la liste des fichiers contenus dans
-        /// le répèrtoire courant selont les paramètres.
+        /// le répertoire courant en fonction des paramètres.
         /// </summary>
         /// <returns></returns>
-        public ListBox.ObjectCollection GetListe()
+        public static SortedList<int, string> GénérerListe()
         {
-            listeFichiers = (new ListBox()).Items;
-            CréerListe(paramètres.dossierCourant);
+            listeFichiers = new SortedList<int, string>();
+            ListerDossier(Properties.Settings.Default.FolderPath);
             return listeFichiers;
         }
 
         /// <summary>
-        /// Créer la liste des fichiers en fonction des paramètres.
+        /// Créer la liste des fichiers dans un dossier 
+        /// en fonction des paramètres.
+        /// 
+        /// Fonction récursive si l'option est activée.
         /// </summary>
-        /// <param name="dossierCourant"></param>
-        private void CréerListe(string chemin)
+        /// <param name="chemin"></param>
+        private static void ListerDossier(string chemin)
         {
             DirectoryInfo répertoire = new DirectoryInfo(chemin);
             FileInfo[] fichiers = null;
@@ -58,9 +56,11 @@ namespace Bitmap_Converter
             // Penser à tester la longeur de l'extention à l'aide de :
             // if(Path.GetExtension(fileName).ToString().Length ==3) 
 
-            if (paramètres.formatDEntrée == Format.Bmp) fichiers = répertoire.GetFiles("*.bmp");
-            else if (paramètres.formatDEntrée == Format.Gif) fichiers = répertoire.GetFiles("*.gif");
-            else if (paramètres.formatDEntrée == Format.Jpeg)
+            if (Properties.Settings.Default.SourceType == Format.Bmp.ToString())
+                fichiers = répertoire.GetFiles("*.bmp");
+            else if (Properties.Settings.Default.SourceType == Format.Gif.ToString())
+                fichiers = répertoire.GetFiles("*.gif");
+            else if (Properties.Settings.Default.SourceType == Format.Jpeg.ToString())
             {
                 FileInfo[][] fichiersJpg = new FileInfo[3][];
                 fichiersJpg[0] = répertoire.GetFiles("*.jpg");
@@ -79,22 +79,25 @@ namespace Bitmap_Converter
                     }
                 }
             }
-            else if (paramètres.formatDEntrée == Format.Png) fichiers = répertoire.GetFiles("*.png");
-            else if (paramètres.formatDEntrée == Format.Tiff) fichiers = répertoire.GetFiles("*.tif");
-            else if (paramètres.formatDEntrée == Format.Wmf) fichiers = répertoire.GetFiles("*.wmf");
+            else if (Properties.Settings.Default.SourceType == Format.Png.ToString())
+                fichiers = répertoire.GetFiles("*.png");
+            else if (Properties.Settings.Default.SourceType == Format.Tiff.ToString())
+                fichiers = répertoire.GetFiles("*.tif");
+            else if (Properties.Settings.Default.SourceType == Format.Wmf.ToString())
+                fichiers = répertoire.GetFiles("*.wmf");
 
             for (int i = 0; i < fichiers.Length; i++)
             {
-                listeFichiers.Add(fichiers[i].FullName);
+                listeFichiers.Add(listeFichiers.Count, fichiers[i].FullName);
             }
 
-            if (paramètres.inclureLesSousRépertoires == true)
+            if (Properties.Settings.Default.RecursiveListing == true)
             {
                 DirectoryInfo[] sousRépertoires = répertoire.GetDirectories();
 
                 foreach (DirectoryInfo sousRépertoireCourant in sousRépertoires)
                 {
-                    CréerListe(sousRépertoireCourant.FullName);
+                    ListerDossier(sousRépertoireCourant.FullName);
                 }
             }
         }
