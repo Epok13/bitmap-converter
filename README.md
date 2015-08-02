@@ -7,6 +7,8 @@
 Bitmap Converter est un logiciel de conversion d'images bitmap supportant les types suivants comme source et comme cible : 
 Bmp, Gif, Jpeg, Png, Tiff, Wmf.
 
+La version actuelle est disponible ici : https://github.com/Epok13/bitmap-converter/releases/tag/1.3
+
 ## Sources 
 
 Bitmap Converter est présenté sous la forme d'un projet Visual Studio (Visual C#) 2015.
